@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trackiq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trackiq
+      POSTGRES_PASSWORD: trackiq_dev_password
+      POSTGRES_DB: trackiq
+    ports:
+      - "5433:5432"
+    volumes:
+      - trackiq_pg_data:/var/lib/postgresql/data
+
+volumes:
+  trackiq_pg_data:
