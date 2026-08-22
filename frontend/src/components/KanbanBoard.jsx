@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/core'
 import KanbanColumn from './KanbanColumn'
 import CreateJobModal from './CreateJobModal'
+import JobDetailsModal from './JobDetailsModal'
 import { fetchJobs, updateJob } from '../api/jobs'
 
 const COLUMNS = [
@@ -19,13 +20,22 @@ const COLUMNS = [
 ]
 
 function KanbanBoard() {
-    const [jobs, setJobs] = useState([])
+  const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedJob, setSelectedJob] = useState(null)
 
   function handleJobCreated(newJob) {
     setJobs((prev) => [newJob, ...prev])
+  }
+
+  function handleJobUpdated(updatedJob) {
+    setJobs((prev) => prev.map((j) => (j.id === updatedJob.id ? updatedJob : j)))
+  }
+
+  function handleJobDeleted(jobId) {
+    setJobs((prev) => prev.filter((j) => j.id !== jobId))
   }
 
   const sensors = useSensors(
@@ -90,7 +100,7 @@ function KanbanBoard() {
     return <p className="text-red-500 mt-8">{error}</p>
   }
 
-    return (
+  return (
     <div>
       <button
         onClick={() => setIsModalOpen(true)}
@@ -111,6 +121,7 @@ function KanbanBoard() {
               status={col.status}
               label={col.label}
               jobs={jobsForStatus(col.status)}
+              onCardClick={setSelectedJob}
             />
           ))}
         </div>
@@ -121,6 +132,15 @@ function KanbanBoard() {
         onClose={() => setIsModalOpen(false)}
         onJobCreated={handleJobCreated}
       />
+
+      {selectedJob && (
+        <JobDetailsModal
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
+        />
+      )}
     </div>
   )
 }

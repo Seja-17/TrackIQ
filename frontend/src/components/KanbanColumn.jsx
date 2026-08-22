@@ -11,7 +11,7 @@ const STATUS_COLORS = {
   WITHDRAWN: 'bg-gray-100 text-gray-500',
 }
 
-function KanbanColumn({ status, label, jobs }) {
+function KanbanColumn({ status, label, jobs, onCardClick }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
   return (
@@ -35,8 +35,8 @@ function KanbanColumn({ status, label, jobs }) {
         strategy={verticalListSortingStrategy}
       >
         <div className="min-h-[60px]">
-          {jobs.map((job) => (
-            <JobCard key={job.id} job={job} />
+        {jobs.map((job) => (
+            <JobCard key={job.id} job={job} onClick={onCardClick} />
           ))}
         </div>
       </SortableContext>

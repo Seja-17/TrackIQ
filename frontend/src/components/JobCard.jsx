@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-function JobCard({ job }) {
+function JobCard({ job, onClick }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: job.id })
 
@@ -12,11 +12,12 @@ function JobCard({ job }) {
   }
 
   return (
-    <div
+      <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
+      onClick={() => onClick?.(job)}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
     >
       <h3 className="font-semibold text-gray-800 text-sm">{job.title}</h3>
