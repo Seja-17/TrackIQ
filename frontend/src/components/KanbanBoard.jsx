@@ -7,6 +7,7 @@ import {
   closestCorners,
 } from '@dnd-kit/core'
 import KanbanColumn from './KanbanColumn'
+import CreateJobModal from './CreateJobModal'
 import { fetchJobs, updateJob } from '../api/jobs'
 
 const COLUMNS = [
@@ -18,9 +19,14 @@ const COLUMNS = [
 ]
 
 function KanbanBoard() {
-  const [jobs, setJobs] = useState([])
+    const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  function handleJobCreated(newJob) {
+    setJobs((prev) => [newJob, ...prev])
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -84,23 +90,38 @@ function KanbanBoard() {
     return <p className="text-red-500 mt-8">{error}</p>
   }
 
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-4 mt-8 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.status}
-            status={col.status}
-            label={col.label}
-            jobs={jobsForStatus(col.status)}
-          />
-        ))}
-      </div>
-    </DndContext>
+    return (
+    <div>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="mt-6 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700"
+      >
+        + Add Job
+      </button>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 mt-4 overflow-x-auto pb-4">
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.status}
+              status={col.status}
+              label={col.label}
+              jobs={jobsForStatus(col.status)}
+            />
+          ))}
+        </div>
+      </DndContext>
+
+      <CreateJobModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onJobCreated={handleJobCreated}
+      />
+    </div>
   )
 }
 
