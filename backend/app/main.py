@@ -13,6 +13,7 @@ from app.models import (
     Job, JobCreate, JobUpdate, JobRead, JobStatus,
     Contact, ContactCreate,
 )
+from app.services.gemini import generate_cold_email, generate_prep_notes
 
 
 @asynccontextmanager
@@ -137,3 +138,41 @@ async def delete_contact(contact_id: uuid.UUID, session: AsyncSession = Depends(
         raise HTTPException(status_code=404, detail="Contact not found")
     await session.delete(contact)
     await session.commit()
+
+
+# ---------------- AI GENERATION ----------------
+
+@app.post("/api/jobs/{job_id}/generate-email", response_model=JobRead)
+async def generate_email(job_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    job = await session.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    try:
+        email_text = generate_cold_email(job.company, job.title, job.job_description)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Gemini API error: {str(e)}")
+
+    job.generated_email = email_text
+    session.add(job)
+    await session.commit()
+    await session.refresh(job, attribute_names=["contacts"])
+    return job
+
+
+@app.post("/api/jobs/{job_id}/generate-prep", response_model=JobRead)
+async def generate_prep(job_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    job = await session.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    try:
+        prep_text = generate_prep_notes(job.company, job.title, job.job_description)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Gemini API error: {str(e)}")
+
+    job.generated_prep = prep_text
+    session.add(job)
+    await session.commit()
+    await session.refresh(job, attribute_names=["contacts"])
+    return job

@@ -25,6 +25,7 @@ function KanbanBoard() {
   const [error, setError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   function handleJobCreated(newJob) {
     setJobs((prev) => [newJob, ...prev])
@@ -45,13 +46,17 @@ function KanbanBoard() {
   )
 
   useEffect(() => {
-    loadJobs()
-  }, [])
+    // Debounce: wait 300ms after the user stops typing before calling the API
+    const timeout = setTimeout(() => {
+      loadJobs(searchTerm)
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [searchTerm])
 
-  async function loadJobs() {
+  async function loadJobs(search = '') {
     try {
       setLoading(true)
-      const data = await fetchJobs()
+      const data = await fetchJobs(search ? { search } : {})
       setJobs(data)
       setError(null)
     } catch (err) {
@@ -92,40 +97,48 @@ function KanbanBoard() {
     }
   }
 
-  if (loading) {
-    return <p className="text-gray-400 mt-8">Loading jobs...</p>
-  }
-
-  if (error) {
-    return <p className="text-red-500 mt-8">{error}</p>
-  }
-
   return (
     <div>
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="mt-6 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700"
-      >
-        + Add Job
-      </button>
+      <div className="flex items-center gap-3 mt-6">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700"
+        >
+          + Add Job
+        </button>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 mt-4 overflow-x-auto pb-4">
-          {COLUMNS.map((col) => (
-            <KanbanColumn
-              key={col.status}
-              status={col.status}
-              label={col.label}
-              jobs={jobsForStatus(col.status)}
-              onCardClick={setSelectedJob}
-            />
-          ))}
-        </div>
-      </DndContext>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by company or title..."
+          className="flex-1 max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        />
+      </div>
+
+      {error && <p className="text-red-500 mt-4">{error}</p>}
+
+      {loading && jobs.length === 0 ? (
+        <p className="text-gray-400 mt-8">Loading jobs...</p>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-4 mt-4 overflow-x-auto pb-4">
+            {COLUMNS.map((col) => (
+              <KanbanColumn
+                key={col.status}
+                status={col.status}
+                label={col.label}
+                jobs={jobsForStatus(col.status)}
+                onCardClick={setSelectedJob}
+              />
+            ))}
+          </div>
+        </DndContext>
+      )}
 
       <CreateJobModal
         isOpen={isModalOpen}

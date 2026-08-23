@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { updateJob, deleteJob } from '../api/jobs'
+import { updateJob, deleteJob, generateColdEmail, generatePrepNotes } from '../api/jobs'
 import { addContact, deleteContact } from '../api/contacts'
+import CopyButton from './CopyButton'
 
 const STATUS_OPTIONS = [
   { value: 'WISHLIST', label: 'Wishlist' },
@@ -25,6 +26,11 @@ function JobDetailsModal({ job, onClose, onJobUpdated, onJobDeleted }) {
   const [contacts, setContacts] = useState(job.contacts || [])
   const [newContact, setNewContact] = useState({ name: '', role: '', email: '' })
   const [error, setError] = useState(null)
+  const [generatedEmail, setGeneratedEmail] = useState(job.generated_email || null)
+  const [generatedPrep, setGeneratedPrep] = useState(job.generated_prep || null)
+  const [generatingEmail, setGeneratingEmail] = useState(false)
+  const [generatingPrep, setGeneratingPrep] = useState(false)
+  const [activeAiTab, setActiveAiTab] = useState('email')
 
   if (!job) return null
 
@@ -76,6 +82,34 @@ function JobDetailsModal({ job, onClose, onJobUpdated, onJobDeleted }) {
       setContacts((prev) => prev.filter((c) => c.id !== contactId))
     } catch (err) {
       setError('Could not remove contact.')
+    }
+  }
+
+    async function handleGenerateEmail() {
+    try {
+      setGeneratingEmail(true)
+      setError(null)
+      const updated = await generateColdEmail(job.id)
+      setGeneratedEmail(updated.generated_email)
+      onJobUpdated({ ...updated, contacts })
+    } catch (err) {
+      setError('Could not generate email. Check your Gemini API key and try again.')
+    } finally {
+      setGeneratingEmail(false)
+    }
+  }
+
+  async function handleGeneratePrep() {
+    try {
+      setGeneratingPrep(true)
+      setError(null)
+      const updated = await generatePrepNotes(job.id)
+      setGeneratedPrep(updated.generated_prep)
+      onJobUpdated({ ...updated, contacts })
+    } catch (err) {
+      setError('Could not generate prep notes. Check your Gemini API key and try again.')
+    } finally {
+      setGeneratingPrep(false)
     }
   }
 
@@ -231,7 +265,85 @@ function JobDetailsModal({ job, onClose, onJobUpdated, onJobDeleted }) {
               >
                 Add
               </button>
-            </form>
+                        </form>
+          </div>
+
+          {/* AI Generation section */}
+          <div className="border-t border-gray-200 pt-3 mt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => setActiveAiTab('email')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                  activeAiTab === 'email'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                Cold Email
+              </button>
+              <button
+                onClick={() => setActiveAiTab('prep')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                  activeAiTab === 'prep'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                Interview Prep
+              </button>
+            </div>
+
+            {activeAiTab === 'email' && (
+              <div>
+                <button
+                  onClick={handleGenerateEmail}
+                  disabled={generatingEmail}
+                  className="text-sm bg-violet-600 text-white px-3 py-1.5 rounded-md hover:bg-violet-700 disabled:opacity-50"
+                >
+                  {generatingEmail
+                    ? 'Generating...'
+                    : generatedEmail
+                    ? 'Regenerate Email'
+                    : 'Generate Cold Email'}
+                </button>
+                                    {generatedEmail && (
+                  <div className="mt-2">
+                    <div className="flex justify-end mb-1">
+                      <CopyButton text={generatedEmail} />
+                    </div>
+                    <pre className="whitespace-pre-wrap text-sm bg-gray-50 border border-gray-200 rounded-md p-3 font-sans">
+                      {generatedEmail}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeAiTab === 'prep' && (
+              <div>
+                <button
+                  onClick={handleGeneratePrep}
+                  disabled={generatingPrep}
+                  className="text-sm bg-violet-600 text-white px-3 py-1.5 rounded-md hover:bg-violet-700 disabled:opacity-50"
+                >
+                  {generatingPrep
+                    ? 'Generating...'
+                    : generatedPrep
+                    ? 'Regenerate Prep Notes'
+                    : 'Generate Prep Notes'}
+                </button>
+                                    {generatedPrep && (
+                  <div className="mt-2">
+                    <div className="flex justify-end mb-1">
+                      <CopyButton text={generatedPrep} />
+                    </div>
+                    <pre className="whitespace-pre-wrap text-sm bg-gray-50 border border-gray-200 rounded-md p-3 font-sans">
+                      {generatedPrep}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between pt-3">
